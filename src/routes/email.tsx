@@ -21,7 +21,7 @@ export const Route = createFileRoute("/email")({
       },
     ],
   }),
-  component: EmailStudio;
+  component: EmailStudio,
 });
 
 type Tone = "formal" | "friendly" | "persuasive";
