@@ -8,6 +8,9 @@ const NAV = [
   { to: "/assistant", label: "Assistant", num: "02" },
   { to: "/planner", label: "Planner", num: "03" },
   { to: "/email", label: "Email Studio", num: "04" },
+  { to: "/goals", label: "Goals", num: "05" },
+  { to: "/insights", label: "Insights", num: "06" },
+  { to: "/settings", label: "Settings", num: "07" },
 ] as const;
 
 function Brand({ size = "md" }: { size?: "sm" | "md" }) {
@@ -23,7 +26,7 @@ function Brand({ size = "md" }: { size?: "sm" | "md" }) {
       <div>
         <p className="font-display font-bold leading-none tracking-tight">SCALEUP</p>
         {size === "md" && (
-          <p className="mt-0.5 font-mono text-[10px] text-mist">operator console</p>
+          <p className="mt-0.5 font-mono text-[10px] text-mist">Work smarter. Grow faster.</p>
         )}
       </div>
     </div>
@@ -93,9 +96,9 @@ export function DashboardShell({
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-ink font-sans text-foreground antialiased">
-      <div className="pointer-events-none absolute -left-40 -top-40 size-[520px] rounded-full bg-[radial-gradient(circle_at_center,oklch(0.82_0.17_165/.2),transparent_60%)] blur-[10px]" />
-      <div className="pointer-events-none absolute right-0 top-1/3 size-[560px] rounded-full bg-[radial-gradient(circle_at_center,oklch(0.78_0.13_205/.18),transparent_60%)]" />
-      <div className="pointer-events-none absolute -bottom-40 left-1/3 size-[520px] rounded-full bg-[radial-gradient(circle_at_center,oklch(0.6_0.16_290/.16),transparent_60%)]" />
+      <div className="pointer-events-none absolute -left-40 -top-40 size-[520px] rounded-full bg-[radial-gradient(circle_at_center,oklch(0.72_0.15_255/.22),transparent_60%)] blur-[10px]" />
+      <div className="pointer-events-none absolute right-0 top-1/3 size-[560px] rounded-full bg-[radial-gradient(circle_at_center,oklch(0.66_0.17_280/.18),transparent_60%)]" />
+      <div className="pointer-events-none absolute -bottom-40 left-1/3 size-[520px] rounded-full bg-[radial-gradient(circle_at_center,oklch(0.78_0.11_225/.16),transparent_60%)]" />
 
       <div className="relative z-10 flex min-h-screen">
         <aside className="hidden w-64 shrink-0 flex-col border-r border-line bg-ink-soft/60 px-4 py-6 backdrop-blur-xl md:flex">

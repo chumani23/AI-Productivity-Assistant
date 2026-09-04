@@ -12,7 +12,7 @@ export const Route = createFileRoute("/email")({
       {
         name: "description",
         content:
-          "Generate professional business emails in a formal, friendly or persuasive tone with the SCALEUP email studio.",
+          "Generate professional business emails in a formal, friendly, professional or persuasive tone with the SCALEUP email studio.",
       },
       { property: "og:title", content: "Smart Email Generator — SCALEUP" },
       {
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/email")({
   component: EmailStudio,
 });
 
-type Tone = "formal" | "friendly" | "persuasive";
+type Tone = "formal" | "friendly" | "professional" | "persuasive";
 
 function EmailStudio() {
   const [brief, setBrief] = useState("");
@@ -93,8 +93,8 @@ function EmailStudio() {
               <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-mist">
                 Tone
               </p>
-              <div className="mt-2 flex gap-1.5">
-                {(["formal", "friendly", "persuasive"] as const).map((t) => (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {(["formal", "friendly", "professional", "persuasive"] as const).map((t) => (
                   <button
                     key={t}
                     onClick={() => setTone(t)}

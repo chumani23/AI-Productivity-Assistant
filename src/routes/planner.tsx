@@ -3,8 +3,17 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { ListChecks, Plus, Trash2 } from "lucide-react";
 import { DashboardShell, Panel } from "@/components/DashboardShell";
 import { generateSchedule } from "@/lib/ai.functions";
+import {
+  SEED_TASKS,
+  formatTasksForAI,
+  uid,
+  useLocalState,
+  type Priority,
+  type Task,
+} from "@/lib/store";
 
 export const Route = createFileRoute("/planner")({
   head: () => ({
@@ -13,7 +22,7 @@ export const Route = createFileRoute("/planner")({
       {
         name: "description",
         content:
-          "Turn a messy task list into a priority-ranked daily or weekly schedule with the SCALEUP AI planner.",
+          "Add tasks with priorities and deadlines, then let SCALEUP build an optimised daily or weekly schedule.",
       },
       { property: "og:title", content: "AI Task Planner — SCALEUP" },
       {
@@ -25,48 +34,190 @@ export const Route = createFileRoute("/planner")({
   component: Planner,
 });
 
+const PRIORITIES: Priority[] = ["P0", "P1", "P2"];
+
 function Planner() {
-  const [tasks, setTasks] = useState("");
+  const [tasks, setTasks] = useLocalState<Task[]>("scaleup.tasks", SEED_TASKS);
+  const [title, setTitle] = useState("");
+  const [priority, setPriority] = useState<Priority>("P1");
+  const [deadline, setDeadline] = useState("");
   const [horizon, setHorizon] = useState<"day" | "week">("day");
   const [hours, setHours] = useState(6);
+  const [notes, setNotes] = useState("");
   const run = useServerFn(generateSchedule);
 
+  const open = tasks.filter((t) => !t.done);
+
   const plan = useMutation({
-    mutationFn: () => run({ data: { tasks, horizon, hours } }),
+    mutationFn: () =>
+      run({
+        data: {
+          tasks: `${formatTasksForAI(tasks)}${notes ? `\n\nContext: ${notes}` : ""}`,
+          horizon,
+          hours,
+        },
+      }),
   });
 
+  const add = () => {
+    if (!title.trim()) return;
+    setTasks((prev) => [
+      { id: uid(), title: title.trim(), priority, deadline, done: false },
+      ...prev,
+    ]);
+    setTitle("");
+    setDeadline("");
+  };
+
   return (
-    <DashboardShell breadcrumb="Planner" title="Task planner">
+    <DashboardShell breadcrumb="Planner" title="AI task planner">
       <div className="rise grid gap-4 lg:grid-cols-2">
+        <div className="space-y-4">
+          <Panel
+            label="Add task"
+            sub="priority · deadline"
+            num="03"
+            footer={
+              <button
+                onClick={add}
+                disabled={!title.trim()}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-aurora px-4 py-2.5 text-sm font-semibold text-ink transition-opacity disabled:opacity-40"
+              >
+                <Plus className="size-4" /> Add task
+              </button>
+            }
+          >
+            <div className="space-y-4 px-4 py-4">
+              <div>
+                <label
+                  htmlFor="task-title"
+                  className="font-mono text-[10px] uppercase tracking-[0.15em] text-mist"
+                >
+                  Task
+                </label>
+                <input
+                  id="task-title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && add()}
+                  placeholder="Send Meridian proposal"
+                  className="mt-2 w-full rounded-lg bg-ink-soft/70 px-3 py-2.5 text-sm outline-none ring-1 ring-line placeholder:text-mist focus:ring-aurora/50"
+                />
+              </div>
+              <div className="flex flex-wrap gap-4">
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-mist">
+                    Priority
+                  </p>
+                  <div className="mt-2 flex gap-1.5">
+                    {PRIORITIES.map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setPriority(p)}
+                        className={`rounded-md px-3 py-1.5 text-xs font-medium ring-1 transition-colors ${
+                          priority === p
+                            ? "bg-aurora/15 text-aurora ring-aurora/30"
+                            : "text-mist ring-line hover:text-foreground"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="min-w-40 flex-1">
+                  <label
+                    htmlFor="task-deadline"
+                    className="font-mono text-[10px] uppercase tracking-[0.15em] text-mist"
+                  >
+                    Deadline
+                  </label>
+                  <input
+                    id="task-deadline"
+                    type="date"
+                    value={deadline}
+                    onChange={(e) => setDeadline(e.target.value)}
+                    className="mt-2 w-full rounded-lg bg-ink-soft/70 px-3 py-2 text-sm outline-none ring-1 ring-line focus:ring-aurora/50"
+                  />
+                </div>
+              </div>
+            </div>
+          </Panel>
+
+          <Panel label="Task list" sub={`${open.length} open`} num="03">
+            <div className="space-y-2 px-4 py-4">
+              {tasks.length === 0 && (
+                <div className="py-8 text-center">
+                  <ListChecks className="mx-auto size-6 text-mist" />
+                  <p className="mt-3 text-sm text-mist">
+                    No tasks yet — add one above to get started.
+                  </p>
+                </div>
+              )}
+              {tasks.map((t) => (
+                <div
+                  key={t.id}
+                  className="flex items-center gap-3 rounded-lg bg-ink-soft/50 px-3 py-2.5 ring-1 ring-line"
+                >
+                  <input
+                    type="checkbox"
+                    checked={t.done}
+                    aria-label={`Mark ${t.title} complete`}
+                    onChange={() =>
+                      setTasks((prev) =>
+                        prev.map((x) => (x.id === t.id ? { ...x, done: !x.done } : x)),
+                      )
+                    }
+                    className="size-4 accent-[var(--aurora)]"
+                  />
+                  <span
+                    className={`grid size-8 shrink-0 place-items-center rounded-md text-xs font-bold ${
+                      t.priority === "P2"
+                        ? "bg-mist/15 text-mist"
+                        : "bg-aurora/20 text-aurora"
+                    }`}
+                  >
+                    {t.priority}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className={`truncate text-sm font-medium ${t.done ? "text-mist line-through" : ""}`}
+                    >
+                      {t.title}
+                    </p>
+                    <p className="mt-0.5 font-mono text-[11px] text-mist">
+                      {t.deadline ? `due ${t.deadline}` : "no deadline"}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setTasks((prev) => prev.filter((x) => x.id !== t.id))}
+                    aria-label={`Delete ${t.title}`}
+                    className="text-mist transition-colors hover:text-destructive"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        </div>
+
         <Panel
-          label="Planner input"
-          sub="tasks · context"
+          label="Generated plan"
+          sub="priority-ranked"
           num="03"
+          className="min-h-80"
           footer={
             <button
               onClick={() => plan.mutate()}
-              disabled={!tasks.trim() || plan.isPending}
+              disabled={open.length === 0 || plan.isPending}
               className="w-full rounded-lg bg-aurora px-4 py-2.5 text-sm font-semibold text-ink transition-opacity disabled:opacity-40"
             >
-              {plan.isPending ? "Planning…" : "Generate schedule"}
+              {plan.isPending ? "Planning…" : `Generate ${horizon} schedule`}
             </button>
           }
         >
           <div className="space-y-4 px-4 py-4">
-            <div>
-              <label className="font-mono text-[10px] uppercase tracking-[0.15em] text-mist">
-                Tasks, deadlines and context
-              </label>
-              <textarea
-                value={tasks}
-                onChange={(e) => setTasks(e.target.value)}
-                rows={9}
-                placeholder={
-                  "Send Meridian proposal (overdue)\nReview Colby contract redlines\nHire a second SDR\nPrep Northwind discovery call Thursday"
-                }
-                className="mt-2 w-full resize-none rounded-lg bg-ink-soft/70 px-3 py-2.5 text-sm leading-relaxed outline-none ring-1 ring-line placeholder:text-mist focus:ring-aurora/50"
-              />
-            </div>
             <div className="flex flex-wrap gap-4">
               <div>
                 <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-mist">
@@ -89,10 +240,14 @@ function Planner() {
                 </div>
               </div>
               <div className="min-w-40 flex-1">
-                <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-mist">
+                <label
+                  htmlFor="focus-hours"
+                  className="font-mono text-[10px] uppercase tracking-[0.15em] text-mist"
+                >
                   Focus hours / day · {hours}
-                </p>
+                </label>
                 <input
+                  id="focus-hours"
                   type="range"
                   min={1}
                   max={12}
@@ -102,11 +257,24 @@ function Planner() {
                 />
               </div>
             </div>
-          </div>
-        </Panel>
 
-        <Panel label="Generated plan" sub="priority-ranked" num="03" className="min-h-80">
-          <div className="flex-1 px-4 py-4">
+            <div>
+              <label
+                htmlFor="plan-notes"
+                className="font-mono text-[10px] uppercase tracking-[0.15em] text-mist"
+              >
+                Extra context (optional)
+              </label>
+              <textarea
+                id="plan-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={2}
+                placeholder="Client calls only in the afternoon."
+                className="mt-2 w-full resize-none rounded-lg bg-ink-soft/70 px-3 py-2.5 text-sm outline-none ring-1 ring-line placeholder:text-mist focus:ring-aurora/50"
+              />
+            </div>
+
             {plan.isPending && (
               <p className="font-mono text-xs text-mist">Ranking your tasks…</p>
             )}
@@ -117,7 +285,7 @@ function Planner() {
             )}
             {!plan.isPending && !plan.data && !plan.isError && (
               <p className="text-sm text-mist">
-                Paste your task list and SCALEUP will sequence it by priority and
+                Add your tasks and SCALEUP will sequence them by priority, deadline and
                 available hours.
               </p>
             )}

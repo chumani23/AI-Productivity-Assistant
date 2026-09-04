@@ -1,20 +1,29 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { CalendarClock, Mail, MessageSquare, Target } from "lucide-react";
 import { DashboardShell, Panel } from "@/components/DashboardShell";
+import { ProgressBar } from "@/routes/goals";
+import {
+  SEED_GOALS,
+  SEED_TASKS,
+  useLocalState,
+  type Goal,
+  type Task,
+} from "@/lib/store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "SCALEUP — AI growth console for your business" },
+      { title: "SCALEUP — Work Smarter. Grow Faster." },
       {
         name: "description",
         content:
-          "SCALEUP is an AI workspace for growing businesses: an AI assistant, a priority-ranked task planner and a smart email generator in one console.",
+          "SCALEUP is an AI business growth assistant for small businesses: dashboard, AI assistant, task planner, email generator, goals and insights in one workspace.",
       },
-      { property: "og:title", content: "SCALEUP — AI growth console" },
+      { property: "og:title", content: "SCALEUP — Work Smarter. Grow Faster." },
       {
         property: "og:description",
         content:
-          "AI assistant, task planner and smart email generator for growing businesses.",
+          "AI assistant, task planner, email generator, goals and insights for growing businesses.",
       },
     ],
   }),
@@ -23,25 +32,30 @@ export const Route = createFileRoute("/")({
 
 const STATS = [
   { label: "Pipeline", value: "$184.2k", note: "+12.4% wk", accent: true },
-  { label: "Tasks done", value: "23 / 31", note: "74% close", accent: false },
   { label: "Emails drafted", value: "9", note: "3 awaiting send", accent: false },
-  { label: "AI spend", value: "62%", note: "of monthly quota", accent: false },
 ];
 
-const PLAN = [
-  { p: "P0", task: "Send Meridian follow-up proposal", meta: "09:00 · Sales", tag: "CLOSE" },
-  { p: "P1", task: "Review Colby & Co contract redlines", meta: "11:30 · Legal", tag: "REVIEW" },
-  { p: "P2", task: "Prep Northwind discovery call notes", meta: "15:00 · Sales", tag: "PREP" },
-];
+const QUICK = [
+  { to: "/assistant", label: "Ask the assistant", icon: MessageSquare },
+  { to: "/planner", label: "Plan my day", icon: CalendarClock },
+  { to: "/email", label: "Write an email", icon: Mail },
+  { to: "/goals", label: "Add a goal", icon: Target },
+] as const;
 
 function Overview() {
+  const [tasks] = useLocalState<Task[]>("scaleup.tasks", SEED_TASKS);
+  const [goals] = useLocalState<Goal[]>("scaleup.goals", SEED_GOALS);
+
   const today = new Date().toLocaleDateString(undefined, {
     day: "numeric",
     month: "long",
   });
+  const done = tasks.filter((t) => t.done).length;
+  const completion = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
+  const todays = tasks.filter((t) => !t.done).slice(0, 4);
 
   return (
-    <DashboardShell breadcrumb="Overview" title="Growth command">
+    <DashboardShell breadcrumb="Overview" title="Business overview">
       <section className="rise mb-8">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -49,8 +63,12 @@ function Overview() {
               Today · {today}
             </p>
             <h2 className="text-balance font-display text-3xl font-bold leading-[1.05] tracking-tight md:text-4xl">
-              Your growth, one decision at a time.
+              Work smarter. Grow faster.
             </h2>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-mist">
+              Your AI-powered growth assistant — priorities, drafts and
+              recommendations, ready before you are.
+            </p>
           </div>
           <Link
             to="/assistant"
@@ -59,6 +77,7 @@ function Overview() {
             New session
           </Link>
         </div>
+
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {STATS.map((s) => (
             <div
@@ -78,123 +97,168 @@ function Overview() {
               </p>
             </div>
           ))}
+          <div className="rounded-xl bg-frost p-4 ring-1 ring-line backdrop-blur-xl">
+            <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-mist">
+              Tasks done
+            </p>
+            <p className="mt-1 font-display text-2xl font-bold tracking-tight">
+              {done} / {tasks.length}
+            </p>
+            <div className="mt-2">
+              <ProgressBar value={completion} />
+            </div>
+          </div>
+          <div className="rounded-xl bg-frost p-4 ring-1 ring-line backdrop-blur-xl">
+            <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-mist">
+              Goals on track
+            </p>
+            <p className="mt-1 font-display text-2xl font-bold tracking-tight">
+              {goals.filter((g) => g.progress >= 50).length} / {goals.length}
+            </p>
+            <p className="mt-1 font-mono text-xs text-mist">this quarter</p>
+          </div>
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {QUICK.map((q) => (
+            <Link
+              key={q.to}
+              to={q.to}
+              className="flex items-center gap-2.5 rounded-xl bg-frost px-3.5 py-3 text-sm font-medium ring-1 ring-line backdrop-blur-xl transition-colors hover:bg-ink-soft/70"
+            >
+              <q.icon className="size-4 text-aurora" />
+              {q.label}
+            </Link>
+          ))}
         </div>
       </section>
 
       <section className="rise grid gap-4 lg:grid-cols-2">
         <Panel
-          label="Assistant"
-          sub="chat transcript"
-          num="02"
+          label="Today's tasks"
+          sub="priority-ranked"
+          num="03"
           footer={
             <Link
-              to="/assistant"
-              className="flex items-center gap-2 rounded-lg bg-ink-soft/70 px-3 py-2.5 ring-1 ring-line"
+              to="/planner"
+              className="flex items-center justify-between rounded-lg bg-ink-soft/70 px-3 py-2.5 text-sm ring-1 ring-line"
             >
-              <span className="flex-1 text-sm text-mist">Ask SCALEUP anything…</span>
+              <span className="text-mist">Open the planner</span>
               <span className="grid size-7 place-items-center rounded-md bg-aurora text-xs font-bold text-ink">
                 →
               </span>
             </Link>
           }
         >
-          <div className="space-y-3 px-4 py-4">
-            <div className="flex gap-2.5">
-              <div className="grid size-7 shrink-0 place-items-center rounded-md bg-ink-soft font-mono text-[9px] text-mist ring-1 ring-line">
-                YOU
+          <div className="space-y-2 px-4 py-4">
+            {todays.length === 0 && (
+              <p className="py-6 text-center text-sm text-mist">
+                Nothing open — add tasks in the planner.
+              </p>
+            )}
+            {todays.map((row) => (
+              <div
+                key={row.id}
+                className="flex items-center gap-3 rounded-lg bg-ink-soft/50 px-3 py-2.5 ring-1 ring-line"
+              >
+                <span
+                  className={`grid size-8 shrink-0 place-items-center rounded-md text-xs font-bold ${
+                    row.priority === "P2"
+                      ? "bg-mist/15 text-mist"
+                      : "bg-aurora/20 text-aurora"
+                  }`}
+                >
+                  {row.priority}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{row.title}</p>
+                  <p className="mt-0.5 font-mono text-[11px] text-mist">
+                    {row.deadline ? `due ${row.deadline}` : "no deadline"}
+                  </p>
+                </div>
               </div>
-              <div className="max-w-[80%] rounded-lg rounded-tl-none bg-ink-soft/60 px-3 py-2 text-sm leading-relaxed ring-1 ring-line">
-                Prioritise my 4 open deals for this week.
-              </div>
-            </div>
-            <div className="flex gap-2.5">
-              <div className="grid size-7 shrink-0 place-items-center rounded-md bg-aurora/15 ring-1 ring-aurora/30">
-                <div className="size-2 rounded-full bg-aurora" />
-              </div>
-              <div className="max-w-[85%] rounded-lg rounded-tl-none bg-frost/80 px-3 py-2.5 text-sm leading-relaxed ring-1 ring-line">
-                Ranked by close probability:{" "}
-                <span className="font-semibold">Meridian Retail</span> (87% — proposal
-                overdue), <span className="font-semibold">Colby &amp; Co</span> (72%),{" "}
-                <span className="text-foreground/80">Northwind</span> (54%). I flagged
-                Meridian as your top priority — want me to draft the follow-up?
-              </div>
-            </div>
+            ))}
           </div>
         </Panel>
 
         <Panel
-          label="Email Studio"
-          sub="generated draft"
-          num="04"
+          label="Goal progress"
+          sub="this quarter"
+          num="05"
           footer={
-            <div className="flex items-center gap-2">
-              <Link
-                to="/email"
-                className="rounded-lg bg-aurora px-3.5 py-2 text-sm font-semibold text-ink"
-              >
-                Open studio
-              </Link>
-              <span className="ml-auto font-mono text-[10px] text-aurora/80">
-                AI-drafted
+            <Link
+              to="/goals"
+              className="flex items-center justify-between rounded-lg bg-ink-soft/70 px-3 py-2.5 text-sm ring-1 ring-line"
+            >
+              <span className="text-mist">Manage goals</span>
+              <span className="grid size-7 place-items-center rounded-md bg-aurora text-xs font-bold text-ink">
+                →
               </span>
-            </div>
+            </Link>
           }
         >
-          <div className="border-b border-line px-4 py-3">
-            <div className="rounded-lg bg-ink-soft/70 px-3 py-2 text-sm leading-snug text-foreground/80 ring-1 ring-line">
-              Follow up with Meridian on the overdue proposal, gentle nudge.
-            </div>
-            <div className="mt-2.5 flex gap-1.5">
-              <span className="rounded-md bg-aurora/15 px-2.5 py-1 text-xs font-medium text-aurora ring-1 ring-aurora/30">
-                Persuasive
-              </span>
-              <span className="rounded-md px-2.5 py-1 text-xs font-medium text-mist ring-1 ring-line">
-                Formal
-              </span>
-              <span className="rounded-md px-2.5 py-1 text-xs font-medium text-mist ring-1 ring-line">
-                Friendly
-              </span>
-            </div>
-          </div>
-          <div className="flex-1 px-4 py-4">
-            <div className="rounded-lg bg-ink-soft/40 p-3 ring-1 ring-line">
-              <p className="mb-2 font-mono text-xs text-mist">
-                Subject: <span className="text-foreground">Meridian — ready to move forward?</span>
+          <div className="space-y-4 px-4 py-4">
+            {goals.length === 0 && (
+              <p className="py-6 text-center text-sm text-mist">
+                No goals yet — set your first target.
               </p>
-              <p className="text-sm leading-relaxed text-foreground/90">
-                Hi Dana, our proposal for the Q3 rollout has been with you for a week.
-                The onboarding timeline still holds — if you confirm by Friday we lock
-                the launch date and your team is live by the 1st.
-              </p>
-            </div>
+            )}
+            {goals.map((g) => (
+              <div key={g.id}>
+                <div className="mb-2 flex items-baseline justify-between gap-3">
+                  <p className="truncate text-sm font-medium">{g.title}</p>
+                  <span className="font-mono text-[11px] text-aurora">
+                    {g.progress}%
+                  </span>
+                </div>
+                <ProgressBar value={g.progress} />
+                <p className="mt-1.5 font-mono text-[11px] text-mist">
+                  {g.metric} {g.deadline && `· due ${g.deadline}`}
+                </p>
+              </div>
+            ))}
           </div>
         </Panel>
       </section>
 
       <section className="rise mt-4">
-        <Panel label="Planner" sub="priority-ranked · day" num="03">
-          <div className="space-y-2 px-4 py-4">
-            {PLAN.map((row) => (
+        <Panel
+          label="AI recommendations"
+          sub="generated for your week"
+          num="06"
+          footer={
+            <Link
+              to="/insights"
+              className="flex items-center justify-between rounded-lg bg-ink-soft/70 px-3 py-2.5 text-sm ring-1 ring-line"
+            >
+              <span className="text-mist">See full insights</span>
+              <span className="grid size-7 place-items-center rounded-md bg-aurora text-xs font-bold text-ink">
+                →
+              </span>
+            </Link>
+          }
+        >
+          <div className="grid gap-3 px-4 py-4 md:grid-cols-3">
+            {[
+              {
+                t: "Close the overdue proposal",
+                d: "Meridian has sat a week — a same-day nudge is your highest-value action.",
+              },
+              {
+                t: "Protect two deep-work blocks",
+                d: "Your P0 work keeps landing after 16:00; move it to the morning.",
+              },
+              {
+                t: "Systemise follow-ups",
+                d: "Three deals stalled at the same stage — template the follow-up email.",
+              },
+            ].map((r) => (
               <div
-                key={row.task}
-                className="flex items-center gap-3 rounded-lg bg-ink-soft/50 px-3 py-2.5 ring-1 ring-line"
+                key={r.t}
+                className="rounded-lg bg-ink-soft/50 p-3 ring-1 ring-line"
               >
-                <span
-                  className={`grid size-8 shrink-0 place-items-center rounded-md text-xs font-bold ${
-                    row.p === "P2"
-                      ? "bg-mist/15 text-mist"
-                      : "bg-aurora/20 text-aurora"
-                  }`}
-                >
-                  {row.p}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{row.task}</p>
-                  <p className="mt-0.5 font-mono text-[11px] text-mist">{row.meta}</p>
-                </div>
-                <span className="shrink-0 font-mono text-[10px] text-mist">
-                  {row.tag}
-                </span>
+                <p className="text-sm font-semibold">{r.t}</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-mist">{r.d}</p>
               </div>
             ))}
           </div>
